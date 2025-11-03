@@ -42,14 +42,15 @@ def load_csv_to_bigquery():
     uri = f"gs://{BUCKET_NAME}/{FILE_NAME}"
 
     job_config = bigquery.LoadJobConfig(
-    source_format=bigquery.SourceFormat.CSV,
-    skip_leading_rows=1,
-    allow_quoted_newlines=True,
-    max_bad_records=1000000,
-    field_delimiter=",",
-    quote_character='"',
-    autodetect=True,  
-    )
+        source_format=bigquery.SourceFormat.CSV,
+        skip_leading_rows=1,
+        allow_quoted_newlines=True,
+        max_bad_records=100,
+        field_delimiter=",",
+        quote_character='"',
+        autodetect=True,
+        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE
+        )   
 
     table_id = f"{GCP_PROJECT}.{BQ_DATASET}.{BQ_TABLE}"
 
@@ -72,7 +73,11 @@ def load_csv_to_bigquery():
 def main(event=None, context=None):
     print("Starting Function")
     manage_bucket_files()
-    load_csv_to_bigquery()
+    try:
+        load_csv_to_bigquery()
+        return "Load started/completed\n", 200
+    except Exception as e:
+        return f"Error: {e}\n", 500
 
 
 if __name__ == "__main__":

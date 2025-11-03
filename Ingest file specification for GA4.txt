@@ -1,0 +1,25 @@
+Ingest file specification for GA4 raw CSV
+
+	Filename convention:
+		-Accepted filename: ga4_public_dataset.csv
+
+	File format and encoding:
+		-Format: CSV (comma-separated values)
+		-Delimiter: , (comma)
+		-Quote character: " (double quote)
+		-Escape for quotes: "" (standard CSV escaping)
+		-Encoding: UTF-8
+	
+	Header and schema rules:
+		-Evader: the first line MUST contain column names exactly as specified (case-sensitive).
+		-Required columns: (must exist and not be NULL)
+			event_name (STRING)
+			event_date (STRING) — format YYYYMMDD
+			event_timestamp (INT64 or STRING) — epoch milliseconds preferred
+			user_pseudo_id (STRING)
+			event_params (STRING) — JSON-serialized array; stored as STRING in raw table
+			device (STRING) — JSON-serialized object; stored as STRING in raw table
+
+	Data types and value formats:
+		-STRING fields: must be quoted when containing commas or newlines. Avoid unescaped newlines.
+		-Numeric fields: plain digits only; no thousands separators or currency symbols.

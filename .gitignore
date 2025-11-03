@@ -1,0 +1,2 @@
+# Ignore local config file containing secrets or environment-specific settings
+config.py
