@@ -1,6 +1,27 @@
 from google.cloud import storage, bigquery
 from datetime import datetime
-from config import BUCKET_NAME, FILE_NAME, GCP_PROJECT, BQ_DATASET, BQ_TABLE
+from config import BUCKET_NAME, FILE_NAME, GCP_PROJECT, BQ_DATASET, BQ_TABLE, table_schema
+from parse_json import transform_csv_bytes_to_records
+
+
+def ensure_table_exists_with_schema():
+
+    client = bigquery.Client(project=GCP_PROJECT)
+    table_id = f"{GCP_PROJECT}.{BQ_DATASET}.{BQ_TABLE}"
+
+    try:
+        client.get_table(table_id)
+        print(f"Table {table_id} already exists.")
+        return
+    except Exception:
+        print(f"Table {table_id} not found — creating...")
+
+    schema = table_schema
+
+    # Create table with predefined schema
+    table_obj = bigquery.Table(table_id, schema=schema)
+    client.create_table(table_obj)
+    print(f"Table {table_id} created with ordered schema.")
 
 
 def ensure_dataset_exists():
@@ -17,7 +38,6 @@ def ensure_dataset_exists():
 
 
 def manage_bucket_files():
-    
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
     blobs = list(bucket.list_blobs())
@@ -29,54 +49,72 @@ def manage_bucket_files():
     print(f"files found in bucket {BUCKET_NAME}:\n")
     for blob in blobs:
         print(f"{blob.name} - last modified: {blob.updated}\n")
-
+    
+    # Find the most recent update timestamp among all blobs
     last_updated = max(blob.updated for blob in blobs)
     print(f"last bucket update: {last_updated.strftime('%Y-%m-%d %H:%M:%S')}\n")
 
 
-def load_csv_to_bigquery():
+def load_records_to_bigquery(records):
+    if not records:
+        print("No records to load.")
+        return
+
+    bq_client = bigquery.Client()
+    table_id = f"{GCP_PROJECT}.{BQ_DATASET}.{BQ_TABLE}"
+    table_ref = bigquery.TableReference.from_string(table_id)
+
+    #ensure_table_exists_with_schema(GCP_PROJECT, BQ_DATASET, BQ_TABLE)
+    
+    # Configure load job to accept newline-delimited JSON
+    job_config = bigquery.LoadJobConfig(
+        source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+        autodetect=True,
+        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+        max_bad_records=100
+    )
+
+    print(f"Loading {len(records)} records into {table_id} ...\n")
+    load_job = bq_client.load_table_from_json(
+        json_rows=records,
+        destination=table_ref,
+        job_config=job_config
+    )
+    load_job.result() # Wait for job to complete
+    table = bq_client.get_table(table_ref)
+    print(f"Loaded rows: {table.num_rows}")
+
+
+def load_csv_to_bigquery_transformed():
     ensure_dataset_exists()
 
     storage_client = storage.Client()
-    bq_client = bigquery.Client()
-    uri = f"gs://{BUCKET_NAME}/{FILE_NAME}"
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(FILE_NAME)
 
-    job_config = bigquery.LoadJobConfig(
-        source_format=bigquery.SourceFormat.CSV,
-        skip_leading_rows=1,
-        allow_quoted_newlines=True,
-        max_bad_records=100,
-        field_delimiter=",",
-        quote_character='"',
-        autodetect=True,
-        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE
-        )   
+    if not blob.exists():
+        raise FileNotFoundError(f"File {FILE_NAME} not found in bucket {BUCKET_NAME}")
 
-    table_id = f"{GCP_PROJECT}.{BQ_DATASET}.{BQ_TABLE}"
+    print(f"Downloading {FILE_NAME} from bucket {BUCKET_NAME} ...")
+    csv_bytes = blob.download_as_bytes()
+    print(f"Downloaded {len(csv_bytes)} bytes.")
 
-    print(f"loading file {FILE_NAME} in BigQuery...\n")
-    load_job = bq_client.load_table_from_uri(
-        uri,
-        table_id,
-        job_config = job_config
-    )
+    print("Transforming CSV rows (parsing JSON columns)...")
+    # Parse CSV and transform JSON columns
+    records = transform_csv_bytes_to_records(csv_bytes)
+    print(f"Transformed to {len(records)} records.")
 
-    load_job.result()
-    print(f"file successfuly loaded into table: {table_id}\n")
-
-    table = bq_client.get_table(table_id)
-    print(f"table schema: {[schema.name for schema in table.schema]}\n")
-    print(f"num of rows loaded: {table.num_rows}\n")
-    return
+    load_records_to_bigquery(records)
 
 
 def main(event=None, context=None):
     print("Starting Function")
     manage_bucket_files()
     try:
-        load_csv_to_bigquery()
+        load_csv_to_bigquery_transformed()
         return "Load started/completed\n", 200
     except Exception as e:
+        print(f"Error: {e}")
         return f"Error: {e}\n", 500
 
 

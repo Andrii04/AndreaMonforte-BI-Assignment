@@ -14,11 +14,30 @@ Ingest file specification for GA4 raw CSV
 		-Evader: the first line MUST contain column names exactly as specified (case-sensitive).
 		-Required columns: (must exist and not be NULL)
 			event_name (STRING)
-			event_date (STRING) — format YYYYMMDD
-			event_timestamp (INT64 or STRING) — epoch milliseconds preferred
-			user_pseudo_id (STRING)
-			event_params (STRING) — JSON-serialized array; stored as STRING in raw table
-			device (STRING) — JSON-serialized object; stored as STRING in raw table
+			event_date (INTEGER) - format YYYYMMDD
+			event_timestamp (INTEGER) - epoch milliseconds preferred
+			user_pseudo_id (FLOAT)
+			event_params (RECORD) - containing the following fields:
+				key (STRING)
+				value (RECORD) - containing the following fields:
+					double_value (FLOAT)
+					float_value (STRING)
+					int_value (INTEGER)
+					string_value (STRING)
+			device (RECORD) - containing:
+				web_info (RECORD) - containing the following fields:
+					time_zone_offset_seconds (STRING)
+					language (STRING)
+					operating_system (STRING)
+					mobile_os_hardware_model (STRING)
+					mobile_marketing_name (STRING)
+					is_limited_ad_tracking (BOOLEAN)
+					advertising_id (STRING)
+					category (STRING)
+					operating_system_version (STRING)
+					mobile_model_name (STRING)
+					vendor_id (STRING)
+					mobile_brand_name (STRING)
 
 	Data types and value formats:
 		-STRING fields: must be quoted when containing commas or newlines. Avoid unescaped newlines.

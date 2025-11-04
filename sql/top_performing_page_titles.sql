@@ -1,25 +1,20 @@
-WITH exploded AS (
-  SELECT 
-    JSON_EXTRACT_ARRAY(event_params, '$.event_params') AS params
+WITH flattened AS (
+  SELECT
+    param.key AS key,
+    param.value.string_value AS string_value
   FROM
-    crystalloids-candidates.andrea_monforte_dataset.ga4_data
-),
-flattened AS (
-  SELECT 
-    JSON_EXTRACT_SCALAR(param, '$.key') AS key,
-    JSON_EXTRACT_SCALAR(param, '$.value.string_value') AS string_value
-  FROM
-    exploded,
-    UNNEST(params) as param
+    `crystalloids-candidates.andrea_monforte_dataset.ga4_data`,
+    UNNEST(event_params) AS param
 )
 SELECT
-  string_value as page_title,
+  string_value AS page_title,
   COUNT(*) AS page_views
 FROM
   flattened
 WHERE
   key = 'page_title'
+  AND string_value IS NOT NULL
 GROUP BY
   page_title
 ORDER BY
-  page_views DESC
+  page_views DESC;
