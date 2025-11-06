@@ -1,3 +1,5 @@
+#public for assignment convenience purposes
+
 from google.cloud import bigquery
 
 BUCKET_NAME = "platform_assignment_bucket"
