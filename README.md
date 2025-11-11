@@ -1,4 +1,4 @@
-# AndreaMonforte-BI-Assignment
+# GA4 GCS-to-BigQuery ETL
 
 This repository contains a compact, production-oriented proof-of-concept data pipeline that ingests daily GA4-style CSV exports from a private Google Cloud Storage bucket, validates and transforms the data, and loads it into BigQuery for analysis. The code is written for deployment as a serverless Cloud Function and can be scheduled to run daily (07:00) via Cloud Scheduler or Workflows.
 
