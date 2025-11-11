@@ -17,7 +17,7 @@ Top-level folders
 	- `parse_json.py` — CSV parsing helpers and JSON-column unwrapping/transformations used before loading to BigQuery.
 	- `config.py` — environment configuration values used by the code. See notes below about demo values.
 - `sql/` — example SQL queries and views used for analysis (for example `avg_engagement_time.sql`). These are provided as examples and reference the dataset/table created by the pipeline.
- - `demonstration-screenshots/` — contains two screenshots used for demonstration: one showing the list of BigQuery views, and one showing Cloud Function run logs when the pipeline was executed.
+ - `demonstration-screenshots/` — contains three screenshots used for demonstration: one showing the list of BigQuery views, one showing Cloud Function run logs when the pipeline was executed, and one showing the execution of the top_performing_page_titles.sql query.
 
 Purpose and scope
 - Demonstrates an automated ETL pipeline from GCS to BigQuery using Python and Google Cloud client libraries.
